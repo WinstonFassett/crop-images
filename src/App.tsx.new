@@ -1,0 +1,141 @@
+import { useState, useCallback } from 'react';
+import {
+  Box,
+  Button,
+  Container,
+  Stack,
+  ImageList,
+  ImageListItem,
+  Typography,
+  Paper,
+} from '@mui/material';
+import type { CropSettings, ImageItem } from './types';
+import { CropperComponent } from './components/CropperComponent';
+import { Settings } from './components/Settings';
+
+export default function App() {
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
+  const [settings, setSettings] = useState<CropSettings>({
+    aspectRatio: null,
+    minWidth: undefined,
+    maxWidth: undefined,
+    minHeight: undefined,
+    maxHeight: undefined,
+  });
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const newImages = Array.from(event.target.files).map((file) => ({
+        id: Math.random().toString(36).substring(7),
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+      setImages((prev) => [...prev, ...newImages]);
+    }
+  };
+
+  const handleCrop = useCallback((croppedDataUrl: string) => {
+    if (selectedImage) {
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === selectedImage.id ? { ...img, cropped: croppedDataUrl } : img
+        )
+      );
+      setSelectedImage(null);
+    }
+  }, [selectedImage]);
+
+  const downloadImage = (image: ImageItem) => {
+    if (image.cropped) {
+      const link = document.createElement('a');
+      link.href = image.cropped;
+      link.download = image.file.name.replace(/\.[^/.]+$/, '') + '_cropped.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const downloadAllImages = () => {
+    images.forEach((image) => {
+      if (image.cropped) {
+        downloadImage(image);
+      }
+    });
+  };
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Bulk Image Cropper
+      </Typography>
+      
+      <Stack direction="row" spacing={3}>
+        <Box sx={{ width: '25%' }}>
+          <Paper className="settings-paper">
+            <Stack spacing={2}>
+              <Button variant="contained" component="label">
+                Upload Images
+                <input
+                  hidden
+                  accept="image/*"
+                  multiple
+                  type="file"
+                  onChange={handleFileUpload}
+                />
+              </Button>
+              <Settings settings={settings} onSettingsChange={setSettings} />
+              {images.length > 0 && (
+                <Button
+                  variant="contained"
+                  onClick={downloadAllImages}
+                  fullWidth
+                >
+                  Download All Cropped
+                </Button>
+              )}
+            </Stack>
+          </Paper>
+        </Box>
+        
+        <Box sx={{ width: '75%' }}>
+          {selectedImage ? (
+            <div className="cropper-container">
+              <CropperComponent
+                imageSrc={selectedImage.preview}
+                settings={settings}
+                onCrop={handleCrop}
+              />
+            </div>
+          ) : (
+            <ImageList cols={3} gap={8}>
+              {images.map((image) => (
+                <ImageListItem key={image.id}>
+                  <img
+                    src={image.cropped || image.preview}
+                    alt={image.file.name}
+                    loading="lazy"
+                    className="image-preview"
+                    onClick={() => setSelectedImage(image)}
+                  />
+                  {image.cropped && (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => downloadImage(image)}
+                      sx={{ mt: 1 }}
+                      fullWidth
+                    >
+                      Download
+                    </Button>
+                  )}
+                </ImageListItem>
+              ))}
+            </ImageList>
+          )}
+        </Box>
+      </Stack>
+    </Container>
+  );
+}
