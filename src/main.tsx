@@ -1,23 +1,24 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import ImageCropperPro from './ImageCropperPrototype';
-// import './index.css';
-// import App from './App';
+import ImageCropper from './components/ImageCropper';
 
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
+import './index.css';
+import { initializeTheme, setupThemeListener } from './lib/theme-script';
+
+// Initialize theme as early as possible
+initializeTheme();
+
+function App() {
+  // Set up theme listener for system preference changes
+  useEffect(() => {
+    setupThemeListener();
+  }, []);
+  
+  return <ImageCropper />;
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider theme={darkTheme}>
-      {/* <CssBaseline />
-      <App /> */}
-      <ImageCropperPro />
-    </ThemeProvider>
+    <App />
   </StrictMode>,
 );
